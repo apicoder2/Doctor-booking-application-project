@@ -5,6 +5,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+
 import java.time.LocalDate;
 
 @Data
@@ -13,6 +16,8 @@ import java.time.LocalDate;
 @Entity
 @Table(name = "available_slots", uniqueConstraints = {
         @UniqueConstraint(columnNames = {"date", "time", "doctor_id"})
+}, indexes = {
+        @Index(name = "idx_date_time_doctor", columnList = "date, time, doctor_id")
 })
 public class TimeSlot {
 
@@ -21,14 +26,29 @@ public class TimeSlot {
     private Long id;
 
     @Column(name = "date", nullable = false)
+    @NotNull(message = "Date cannot be null")
     private LocalDate date;
 
     @Column(name = "time", nullable = false)
+    @NotEmpty(message = "Time cannot be empty")
     private String time;
 
     @Column(name = "is_available", nullable = false)
+    @NotNull(message = "Availability status cannot be null")
     private Boolean isAvailable;
 
     @Column(name = "doctor_id", nullable = false)
-    private Long doctorId; // New field for doctor-specific slots
+    @NotNull(message = "Doctor ID cannot be null")
+    private Long doctorId;
+
+    @Override
+    public String toString() {
+        return "TimeSlot{" +
+                "id=" + id +
+                ", date=" + date +
+                ", time='" + time + '\'' +
+                ", doctorId=" + doctorId +
+                ", isAvailable=" + isAvailable +
+                '}';
+    }
 }

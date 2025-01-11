@@ -10,4 +10,6 @@ public interface TimeSlotRepository extends JpaRepository<TimeSlot, Long> {
     List<TimeSlot> findByDateAndDoctorIdAndIsAvailableTrue(LocalDate date, Long doctorId);
     TimeSlot findByDateAndTimeAndDoctorId(LocalDate date, String time, Long doctorId);
     boolean existsByDateAndTimeAndDoctorId(LocalDate date, String time, Long doctorId);
+
+    List<TimeSlot> findByDate(LocalDate today);
 }
