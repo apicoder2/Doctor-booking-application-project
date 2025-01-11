@@ -1,6 +1,8 @@
 package com.practo.practo.config;
 
+import com.practo.practo.entity.Doctor;
 import com.practo.practo.entity.TimeSlot;
+import com.practo.practo.repository.DoctorRepository;
 import com.practo.practo.repository.TimeSlotRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
@@ -14,34 +16,39 @@ import java.util.List;
 public class TimeSlotConfiguration {
 
     @Bean
-    public CommandLineRunner initializeTimeSlots(TimeSlotRepository timeSlotRepository) {
+    public CommandLineRunner initializeTimeSlots(TimeSlotRepository timeSlotRepository, DoctorRepository doctorRepository) {
         return args -> {
             LocalDate today = LocalDate.now();
 
-            // Fetch all existing time slots for today's date
-            List<TimeSlot> existingSlots = timeSlotRepository.findByDate(today);
+            List<Doctor> doctors = doctorRepository.findAll();
+            if (doctors.isEmpty()) {
+                System.out.println("No doctors found. Skipping time slot initialization.");
+                return;
+            }
 
-            for (Long doctorId = 1L; doctorId <= 3L; doctorId++) { // Example for 3 doctors
+            for (Doctor doctor : doctors) {
+                Long doctorId = doctor.getId();
+
                 List<TimeSlot> newSlots = Arrays.asList(
-                        new TimeSlot(null, today, "10:15 AM".toUpperCase(), true, doctorId),
-                        new TimeSlot(null, today, "11:15 AM".toUpperCase(), true, doctorId),
-                        new TimeSlot(null, today, "12:15 PM".toUpperCase(), true, doctorId)
+                        new TimeSlot(null, today, "10:15 AM", true, doctorId),
+                        new TimeSlot(null, today, "11:15 AM", true, doctorId),
+                        new TimeSlot(null, today, "12:15 PM", true, doctorId)
                 );
 
-                for (TimeSlot newSlot : newSlots) {
-                    // Check if this slot already exists in the fetched list
-                    boolean alreadyExists = existingSlots.stream().anyMatch(existingSlot ->
-                            existingSlot.getDate().equals(newSlot.getDate()) &&
-                                    existingSlot.getTime().equals(newSlot.getTime()) &&
-                                    existingSlot.getDoctorId().equals(newSlot.getDoctorId())
-                    );
+                List<TimeSlot> existingSlots = timeSlotRepository.findByDateAndDoctorId(today, doctorId);
 
-                    if (!alreadyExists) {
-                        // Add the slot if it doesn't exist
-                        timeSlotRepository.save(newSlot);
-                    } else {
-                        System.out.println("Duplicate time slot skipped: " + newSlot);
-                    }
+                List<TimeSlot> uniqueSlots = newSlots.stream()
+                        .filter(newSlot -> existingSlots.stream().noneMatch(existingSlot ->
+                                existingSlot.getDate().equals(newSlot.getDate()) &&
+                                        existingSlot.getTime().equals(newSlot.getTime()) &&
+                                        existingSlot.getDoctorId().equals(newSlot.getDoctorId())))
+                        .toList();
+
+                if (!uniqueSlots.isEmpty()) {
+                    timeSlotRepository.saveAll(uniqueSlots);
+                    System.out.println("Added time slots for doctor ID " + doctorId);
+                } else {
+                    System.out.println("No new time slots needed for doctor ID " + doctorId);
                 }
             }
         };

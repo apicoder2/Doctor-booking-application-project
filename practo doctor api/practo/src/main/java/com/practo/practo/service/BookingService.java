@@ -4,17 +4,15 @@ import com.practo.practo.config.TimeSlotManager;
 import com.practo.practo.entity.Booking;
 import com.practo.practo.payload.BookingDto;
 import com.practo.practo.repository.BookingRepository;
-import com.practo.practo.repository.TimeSlotRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PreDestroy;
-import java.time.LocalDate;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -28,7 +26,7 @@ public class BookingService {
     @Autowired
     private TimeSlotManager timeSlotManager;
 
-    private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
+    private ExecutorService executor = Executors.newCachedThreadPool(); // Dynamic thread pool
 
     public synchronized String bookAnAppointment(BookingDto bookingDto) {
         if (!bookingDto.isValidBookingTime()) {
@@ -55,14 +53,11 @@ public class BookingService {
     }
 
     public String cancelBooking(Long bookingId) {
-        Booking booking = bookingRepo.findById(bookingId).orElse(null);
-        if (booking == null) {
-            return "Booking not found.";
-        }
-
-        timeSlotManager.addTimeSlot(booking.getBookingDate(), booking.getBookingTime(), booking.getDoctorId());
-        bookingRepo.delete(booking);
-        return "Booking canceled and time slot freed.";
+        return bookingRepo.findById(bookingId).map(booking -> {
+            timeSlotManager.addTimeSlot(booking.getBookingDate(), booking.getBookingTime(), booking.getDoctorId());
+            bookingRepo.delete(booking);
+            return "Booking canceled and time slot freed.";
+        }).orElse("Booking not found.");
     }
 
     @PreDestroy

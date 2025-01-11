@@ -30,20 +30,13 @@ public class TimeSlotManager {
     }
 
     public synchronized void addTimeSlot(LocalDate date, String timeSlot, Long doctorId) {
-        if (!timeSlotRepository.existsByDateAndTimeAndDoctorId(date, timeSlot, doctorId)) {
-            TimeSlot newSlot = new TimeSlot();
-            newSlot.setDate(date);
-            newSlot.setTime(timeSlot);
-            newSlot.setIsAvailable(true);
-            newSlot.setDoctorId(doctorId);
-            timeSlotRepository.save(newSlot);
-        } else {
-            TimeSlot existingSlot = timeSlotRepository.findByDateAndTimeAndDoctorId(date, timeSlot, doctorId);
-            if (existingSlot != null && !existingSlot.getIsAvailable()) {
-                existingSlot.setIsAvailable(true);
-                timeSlotRepository.save(existingSlot);
-            }
+        TimeSlot existingSlot = timeSlotRepository.findByDateAndTimeAndDoctorId(date, timeSlot, doctorId);
+
+        if (existingSlot == null) {
+            timeSlotRepository.save(new TimeSlot(null, date, timeSlot, true, doctorId));
+        } else if (!existingSlot.getIsAvailable()) {
+            existingSlot.setIsAvailable(true);
+            timeSlotRepository.save(existingSlot);
         }
     }
 }
-
